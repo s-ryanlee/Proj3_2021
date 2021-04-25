@@ -12,91 +12,47 @@ import sqlite3
 DBNAME = 'choc.sqlite'
 conn = sqlite3.connect(DBNAME)
 cur = conn.cursor()
-# CompanyLocation and BroadBeanOrigin are FK on Countries Table
-
-class Query():
-    def __init__(self, hlc='bars',
-                select="b.SpecificBeanBarName, b.Company, c.EnglishName, b.Rating, b.CocoaPercent, c.Region",
-                join='CompanyLocationId',
-                where_type=None,
-                where_filter=None,
-                sort='b.Rating',
-                direction='desc',
-                limit=10):
-
-        self.command = hlc
-        self.select = select
-        self.join = join
-        self.where_type = where_type
-        self.where_filter = where_filter
-        self.sort = sort
-        self.direction = direction
-        self.limit = limit
-
-    def print_attributes(self):
-        return print(
-            f"command: {self.command}\nselect: {self.select}\njoin: {self.join}\nwhere_type: {self.where_type}\nwhere_filter: {self.where_filter}\nsort: {self.sort}\ndirection: {self.direction}\nlimit: {self.limit}"
-        )
-
-    def print_query(self):
-        if self.where_type is not None:
-            filtered_query = (
-                    f"Select {self.select} from Bars b"
-                    f" join Countries c on c.id=b.{self.join}"
-                    f" where {where_type} like '{where_filter}'"
-                    f" order by {self.sort} {self.direction}"
-                    f" limit {self.limit};"
-                )
-            print(filtered_query)
-            #results = cur.execute(country_filtered_query).fetchall()
-        elif self.where_type is None:
-            default_query = (
-                f"Select {self.select} from Bars b"
-                f" join Countries c on c.id=b.{self.join}"
-                f" order by {self.sort} {self.direction}"
-                f" limit {self.limit};"
-            )
-            print(default_query)
-            #results = cur.execute(default_query).fetchall()
-        return None
-
-
-
-# Part 1: Implement logic to process user commands
-def process_command(command):
-    high_levels = ['bars', 'companies', 'countries', 'regions']
-    if command.lower() == default.command:
-        results = default.get_default_results()
-
-    return results
-
-
-def load_help_text():
-    with open('help.txt') as f:
-        return f.read()
-
-
-# Part 2 & 3: Implement interactive prompt and plotting. We've started for you!
-def interactive_prompt():
-    help_text = load_help_text()
-    response = ''
-    while response != 'exit':
-        response = input('Enter a command: ')
-
-        if response == 'help':
-            print(help_text)
-            continue
-
 
 def parse_command(command):
+    """
+    Parses a command string into a dictionary of query clause inputs.
+    If the command string is missing parts of the query clause,
+    default values are used instead.
+
+    defaults:
+    "hlc": 'bars',
+    "select":"b.SpecificBeanBarName, b.Company, c.EnglishName, b.Rating, b.CocoaPercent, c.Region",
+    "join":'CompanyLocationId',
+    "where_type":None,
+    "where_filter":None,
+    "sort":'b.Rating',
+    "direction":'desc',
+    "limit":10
+
+    PARAMETERS: command (str)
+    -------------------------
+    example: "bars sell region=Europe cocoa bottom 5"
+
+    Returns: query_attribs (dict)
+    -----------------------------
+    A dictionary containing query clause input values.
+    """
+
     hlc_options = ['bars', 'companies', 'countries', 'regions']
     join_options = ['sell', 'source']
     where_type_options = ['country', 'region']
     sort_options = ['ratings', 'cocoa', 'number_of_bars']
     direction_options = ['top', 'bottom']
-    digits = ['0', '1', '2', '3', '4', '5', '6','7', '8','9']
+    query_attribs = {"hlc": 'bars',
+                "select":"b.SpecificBeanBarName, b.Company, c.EnglishName, b.Rating, b.CocoaPercent, c.Region",
+                "join":'CompanyLocationId',
+                "where_type":None,
+                "where_filter":None,
+                "sort":'b.Rating',
+                "direction":'desc',
+                "limit":10}
+
     query_input_list = command.split(' ')
-    query_attribs = {}
 
     for item in query_input_list:
         if item in hlc_options:
@@ -124,13 +80,10 @@ def parse_command(command):
         elif item in sort_options:
             if item == 'cocoa':
                 sort = 'AVG(b.CocoaPercent)'
-                #query_attribs['sort'] = sort
             elif item == 'number_of_bars':
                 sort = 'COUNT(b.SpecificBeanBarName)'
-                #query_attribs['sort'] = sort
             else:
                 sort = 'AVG(b.Rating)'
-                #query_attribs['sort'] = sort
         elif item in direction_options:
             if item == 'bottom':
                 direction = 'asc'
@@ -138,9 +91,11 @@ def parse_command(command):
             else:
                 direction = 'desc'
                 query_attribs['direction'] = direction
-        elif item in range(1,999):
-            limit = int(item)
-            query_attribs['limit'] = limit
+        else:
+            try:
+                query_attribs['limit'] = int(item)
+            except ValueError:
+                pass
 
     if hlc == 'regions':
         select = f'c.Region, {sort}'
@@ -164,24 +119,85 @@ def parse_command(command):
     return query_attribs
 
 
-def create_Query_instance(query_attribs):
-    command_instance = Query(query_attribs)
-    return command_instance
+def generate_query(query_attribs):
+    """
+    Generates a query string from different query clause inputs.
+
+    Parameters: query_attribs (dict)
+    -------------------------
+    defaults:
+    "hlc": 'bars',
+    "select":"b.SpecificBeanBarName, b.Company, c.EnglishName, b.Rating, b.CocoaPercent, c.Region",
+    "join":'CompanyLocationId',
+    "where_type":None,
+    "where_filter":None,
+    "sort":'b.Rating',
+    "direction":'desc',
+    "limit":10
+
+    Returns: query (str)
+    -----------------------------
+    A formatted query string.
+    """
+    if query_attribs['where_type'] is not None:
+        query = (
+                f"Select {query_attribs['select']} from Bars b"
+                f" join Countries c on c.id=b.{query_attribs['join']}"
+                f" where {query_attribs['where_type']} like '{query_attribs['where_filter']}'"
+                f" order by {query_attribs['sort']} {query_attribs['direction']}"
+                f" limit {query_attribs['limit']};"
+            )
+    elif query_attribs['where_type'] is None:
+        query = (
+            f"Select {query_attribs['select']} from Bars b"
+            f" join Countries c on c.id=b.{query_attribs['join']}"
+            f" order by {query_attribs['sort']} {query_attribs['direction']}"
+            f" limit {query_attribs['limit']};"
+        )
+    else:
+        print('invalid query')
+    return query
+
+
+# Part 1: Implement logic to process user commands
+def process_command(command):
+    parsed_command = parse_command(command)
+    query = generate_query(parsed_command)
+    results = cur.execute(query).fetchall()
+    return results
+
+
+def load_help_text():
+    with open('Proj3Help.txt') as f:
+        return f.read()
+
+
+# Part 2 & 3: Implement interactive prompt and plotting. We've started for you!
+def interactive_prompt():
+    help_text = load_help_text()
+    response = ''
+    while response != 'exit':
+        response = input('Enter a command: ')
+        results = process_command(response)
+        for result in results:
+            print(result, '\n')
+        if response == 'help':
+            print(help_text)
+            continue
 
 
 # Make sure nothing runs or prints out when this file is run as a module/library
 if __name__=="__main__":
-    example_bars_command = 'bars sell region=Europe cocoa bottom 5'
-    print(example_bars_command)
-    print('------------------------------')
-    example_query_input_dict = parse_command(example_bars_command)
-    print(example_query_input_dict)
-    print('------------------------------')
-    example_query_instance = create_Query_instance(example_query_input_dict)
-    example_query_instance.print_attributes()
-    example_query_instance.print_query()
+    # TESTING PARSE COMMAND AND GENERATE QUERY
+    # example_bars_command = 'bars sell region=Europe cocoa bottom 5'
+    # print(example_bars_command)
+    # print('------------------------------')
+    # example_query_input_dict = parse_command(example_bars_command)
+    # print(example_query_input_dict)
+    # print('------------------------------')
+    # example_query = generate_query(example_query_input_dict)
 
-    #interactive_prompt()
+    interactive_prompt()
 
 
 
