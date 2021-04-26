@@ -79,11 +79,11 @@ def parse_command(command):
                 query_attribs['where_filter'] = where_filter
         elif item in sort_options:
             if item == 'cocoa':
-                sort = 'AVG(b.CocoaPercent)'
+                query_attribs['sort'] = 'AVG(b.CocoaPercent)'
             elif item == 'number_of_bars':
-                sort = 'COUNT(b.SpecificBeanBarName)'
+                query_attribs['sort'] = 'COUNT(b.SpecificBeanBarName)'
             else:
-                sort = 'AVG(b.Rating)'
+                query_attribs['sort'] = 'AVG(b.Rating)'
         elif item in direction_options:
             if item == 'bottom':
                 direction = 'asc'
@@ -98,23 +98,22 @@ def parse_command(command):
                 pass
 
     if hlc == 'regions':
-        select = f'c.Region, {sort}'
+        select = f"c.Region, {query_attribs['sort']}"
     elif hlc == 'companies':
-        select = f'b.Company, c.EnglishName, {sort}'
+        select = f"b.Company, c.EnglishName, {query_attribs['sort']}"
     elif hlc == 'countries':
-        select = f'c.EnglishName, c.Region, {sort}'
+        select = f"c.EnglishName, c.Region, {query_attribs['sort']}"
     else:
-        if sort == 'AVG(b.CocoaPercent)':
-            sort = 'b.CocoaPercent'
-            select = f"b.SpecificBeanBarName, b.Company, c.EnglishName, b.Rating, {sort}, c.Region"
-        elif sort == 'COUNT(b.SpecificBeanBarName)':
-            sort = 'b.SpecificBeanBarName'
-            select = f"{sort}, b.Company, c.EnglishName, b.Rating, b.CocoaPercent, c.Region"
+        if query_attribs['sort'] == 'AVG(b.CocoaPercent)':
+            query_attribs['sort'] = 'b.CocoaPercent'
+            select = f"b.SpecificBeanBarName, b.Company, c.EnglishName, b.Rating, {query_attribs['sort']}, c.Region"
+        elif query_attribs['sort'] == 'COUNT(b.SpecificBeanBarName)':
+            query_attribs['sort'] = 'b.SpecificBeanBarName'
+            select = f"{query_attribs['sort']}, b.Company, c.EnglishName, b.Rating, b.CocoaPercent, c.Region"
         else:
-            sort = 'b.Rating'
-            select = f"b.SpecificBeanBarName, b.Company, c.EnglishName, {sort}, b.CocoaPercent, c.Region"
+            query_attribs['sort'] = 'b.Rating'
+            select = f"b.SpecificBeanBarName, b.Company, c.EnglishName, {query_attribs['sort']}, b.CocoaPercent, c.Region"
     query_attribs['select'] = select
-    query_attribs['sort'] = sort
 
     return query_attribs
 
@@ -161,9 +160,12 @@ def generate_query(query_attribs):
 
 # Part 1: Implement logic to process user commands
 def process_command(command):
-    parsed_command = parse_command(command)
-    query = generate_query(parsed_command)
-    results = cur.execute(query).fetchall()
+    if command != 'exit':
+        parsed_command = parse_command(command)
+        query = generate_query(parsed_command)
+        results = cur.execute(query).fetchall()
+    else:
+        print('...')
     return results
 
 
@@ -175,14 +177,24 @@ def load_help_text():
 # Part 2 & 3: Implement interactive prompt and plotting. We've started for you!
 def interactive_prompt():
     help_text = load_help_text()
-    response = ''
-    while response != 'exit':
+    valid_responses = ['bars', 'companies', 'countries', 'regions', 'help', 'exit']
+    while True:
         response = input('Enter a command: ')
-        results = process_command(response)
-        for result in results:
-            print(result, '\n')
-        if response == 'help':
-            print(help_text)
+        if response == '':
+            response = 'bars'
+        if response in valid_responses:
+            if response == 'help':
+                print(help_text)
+                continue
+            elif response == 'exit':
+                print('Closing...')
+                break
+            else:
+                results = process_command(response)
+                for result in results:
+                    print(result, '\n')
+        else:
+            print('Enter a valid command. Type "help" to view documentation.')
             continue
 
 
