@@ -139,33 +139,84 @@ def generate_query(query_attribs):
     A formatted query string.
     """
     if query_attribs['where_type'] is not None:
-        if query_attribs['hlc'] == 'countries' or query_attribs['hlc'] == 'companies':
+        if query_attribs['hlc'] == 'countries':
             query = (
                     f"Select {query_attribs['select']} from Bars b"
                     f" join Countries c on c.id=b.{query_attribs['join']}"
                     f" where {query_attribs['where_type']} like '{query_attribs['where_filter']}'"
-                    "group by b.Company having count(SpecificBeanBarName) > 4"
+                    f" group by b.{query_attribs['join']} having count(b.SpecificBeanBarName) > 4"
                     f" order by {query_attribs['sort']} {query_attribs['direction']}"
                     f" limit {query_attribs['limit']};"
                 )
+            print(query)
+        elif query_attribs['hlc'] == 'companies':
+            query = (
+                f"Select {query_attribs['select']} from Bars b"
+                f" join Countries c on c.id=b.{query_attribs['join']}"
+                f" where {query_attribs['where_type']} like '{query_attribs['where_filter']}'"
+                f" group by b.Company having count(b.SpecificBeanBarName) > 4"
+                f" order by {query_attribs['sort']} {query_attribs['direction']}"
+                f" limit {query_attribs['limit']};"
+            )
+            print(query)
         elif query_attribs['hlc'] == 'regions':
             query = (
                     f"Select {query_attribs['select']} from Bars b"
                     f" join Countries c on c.id=b.{query_attribs['join']}"
                     f" where {query_attribs['where_type']} like '{query_attribs['where_filter']}'"
-                    "group by c.Region having count(SpecificBeanBarName) > 4"
+                    f" group by b.{query_attribs['join']} having count(b.SpecificBeanBarName) > 4"
                     f" order by {query_attribs['sort']} {query_attribs['direction']}"
                     f" limit {query_attribs['limit']};"
                 )
+            print(query)
+        else:
+            query = (
+                f"Select {query_attribs['select']} from Bars b"
+                f" join Countries c on c.id=b.{query_attribs['join']}"
+                f" where {query_attribs['where_type']} like '{query_attribs['where_filter']}'"
+                f" order by {query_attribs['sort']} {query_attribs['direction']}"
+                f" limit {query_attribs['limit']};"
+            )
+            print(query)
     elif query_attribs['where_type'] is None:
-        query = (
-            f"Select {query_attribs['select']} from Bars b"
-            f" join Countries c on c.id=b.{query_attribs['join']}"
-            f" order by {query_attribs['sort']} {query_attribs['direction']}"
-            f" limit {query_attribs['limit']};"
-        )
+        if query_attribs['hlc'] == 'countries':
+            query = (
+                f"Select {query_attribs['select']} from Bars b"
+                f" join Countries c on c.id=b.{query_attribs['join']}"
+                f" group by b.{query_attribs['join']} having count(b.SpecificBeanBarName) > 4"
+                f" order by {query_attribs['sort']} {query_attribs['direction']}"
+                f" limit {query_attribs['limit']};"
+            )
+            print(query)
+        elif query_attribs['hlc'] == 'companies':
+            query = (
+                f"Select {query_attribs['select']} from Bars b"
+                f" join Countries c on c.id=b.{query_attribs['join']}"
+                f" group by b.Company having count(b.SpecificBeanBarName) > 4"
+                f" order by {query_attribs['sort']} {query_attribs['direction']}"
+                f" limit {query_attribs['limit']};"
+            )
+            print(query)
+        elif query_attribs['hlc'] == 'regions':
+            query = (
+                f"Select {query_attribs['select']} from Bars b"
+                f" join Countries c on c.id=b.{query_attribs['join']}"
+                f" group by b.{query_attribs['join']} having count(b.SpecificBeanBarName) > 4"
+                f" order by {query_attribs['sort']} {query_attribs['direction']}"
+                f" limit {query_attribs['limit']};"
+            )
+            print(query)
+        else:
+            query = (
+                f"Select {query_attribs['select']} from Bars b"
+                f" join Countries c on c.id=b.{query_attribs['join']}"
+                f" order by {query_attribs['sort']} {query_attribs['direction']}"
+                f" limit {query_attribs['limit']};"
+            )
+            print(query)
     else:
-        print('invalid query')
+        query = 'Invalid query'
+        print(query)
     return query
 
 
